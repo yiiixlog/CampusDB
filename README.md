@@ -1,8 +1,9 @@
-# 校園餐飲點餐系統 - 資料庫設計文檔
+# 校園餐飲點餐系統 - 資料庫設計
 
 ## 概述
 
-這是一個展示 **SQL 與 NoSQL 混合架構** 的校園餐飲點餐系統完整資料庫設計方案。本專案以「顧客 — 訂單 — 店家」為核心，提供學生點餐、店家管理、訂單追蹤、訊息與公告等功能，並對比兩種資料庫在設計與應用上的優缺點。
+展示了 **SQL 與 NoSQL 混合架構** 校園點餐系統的資料庫設計方案。
+本專案以「顧客 — 訂單 — 店家」為核心，提供學生點餐、店家管理、訂單追蹤、訊息與公告等功能，並對比兩種資料庫在設計與應用上的優缺點。
 
 **核心特性：**
 - **混合架構**：SQL 處理核心業務，NoSQL 負責高頻資料
@@ -12,7 +13,7 @@
 
 ---
 
-## 🗄️ 資料庫架構設計
+## 資料庫架構設計
 
 ### 核心架構圖
 
@@ -78,7 +79,7 @@ MongoDB 主要用於儲存**高頻寫入、格式靈活**的資料：
 
 ---
 
-## 💡 SQL vs NoSQL 使用決策矩陣
+## 💡 SQL vs NoSQL
 
 | 場景 | SQL（CAMPUS.sql） | NoSQL（MongoDB） | 推薦 |
 |------|:---:|:---:|:---:|
@@ -91,43 +92,7 @@ MongoDB 主要用於儲存**高頻寫入、格式靈活**的資料：
 
 ---
 
-## 系統分層架構
-
-### 後端分層結構
-
-```
-Express Server (Port 3000)
-│
-├─ API Routes 層
-│  ├── /api/orders          → 訂單相關
-│  ├── /api/payments        → 付款相關
-│  ├── /api/messages        → 訊息相關（MongoDB）
-│  ├── /api/notices         → 公告相關（MongoDB）
-│  └── /api/users           → 使用者相關
-│
-├─ Controller 層（業務邏輯）
-│  ├── OrderController
-│  ├── PaymentController
-│  ├── MessageController
-│  └── NoticeController
-│
-├─ Service 層（資料訪問邏輯）
-│  ├── SQLService
-│  │  ├── UserService
-│  │  ├── OrderService
-│  │  ├── PaymentService
-│  │  └── ReviewService
-│  │
-│  └── NoSQLService
-│     ├── MessageService
-│     └── NoticeService
-│
-└─ Database 層
-   ├── MySQL Connection Pool
-   └── MongoDB Connection
-```
-
-### 資料流向示例
+### 資料流
 
 **場景：學生提交訂單並支付**
 
