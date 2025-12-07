@@ -1,183 +1,251 @@
-校園餐飲點餐系統 - 資料庫設計
-本專案示範如何同時使用 SQL（關聯式資料庫） 與 NoSQL（文件資料庫） 來實作一個校園餐飲點餐系統，並比較兩者在設計與使用上的差異與取捨。
+# 校園餐飲點餐系統 - 資料庫設計文檔
 
-專案簡介
-這是一個校園餐飲管理的全端應用程式，包含學生點餐、店家管理、訂單追蹤、訊息與公告等功能。此版本特別著重在資料庫設計：同時提供傳統 SQL 與 MongoDB NoSQL 的實作，方便學習與比較。
+## 概述
 
-📁 專案結構
-bash
-├── backend/        # Node.js + Express 後端 API（主要連接 SQL）
-├── frontend/       # 前端網頁介面（學生 / 店家）
-└── Nosql/          # MongoDB NoSQL 設計與範例（Message / PublicNotice）
-🗄️ SQL 資料庫（CAMPUS.sql）
-Schema 概觀
-所有關聯式表格與欄位定義集中在 CAMPUS.sql
+這是一個展示 **SQL 與 NoSQL 混合架構** 的校園餐飲點餐系統完整資料庫設計方案。本專案以「顧客 — 訂單 — 店家」為核心，提供學生點餐、店家管理、訂單追蹤、訊息與公告等功能，並對比兩種資料庫在設計與應用上的優缺點。
 
-主要涵蓋以下實體（實際欄位以 SQL 檔為準）：
+**核心特性：**
+- 🏗️ **混合架構**：SQL 處理核心業務，NoSQL 負責高頻資料
+- 📋 **第三正規化設計**：確保資料結構完整、一致、無重複
+- 🔐 **ACID 交易保證**：訂單、付款等關鍵操作的一致性
+- 🎯 **多角色權限**：學生、店家、管理員的清晰權限隔離
 
-使用者（學生 / 店家 / 管理員）
+---
 
-店家／餐廳
+## 🗄️ 資料庫架構設計
 
-菜單與品項
+### 核心架構圖
 
-訂單與訂單明細
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend 層                          │
+│              （學生端 / 店家端 / 管理端）               │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│               Express.js REST API 層                    │
+│                  （後端業務邏輯）                       │
+└──────┬──────────────────────────────┬───────────────────┘
+       │                              │
+┌──────▼────────────────┐  ┌─────────▼─────────────────┐
+│   SQL 資料庫層        │  │  NoSQL 資料庫層          │
+│    (MySQL)            │  │   (MongoDB)              │
+├──────────────────────┤  ├──────────────────────────┤
+│ • User 使用者        │  │ • Message 訊息           │
+│ • Store 店家         │  │ • PublicNotice 公告     │
+│ • Order 訂單         │  │ • 非結構化資料           │
+│ • MenuItem 菜單      │  │ • 高頻讀寫資料           │
+│ • Payment 付款       │  │                         │
+│ • Review 評價        │  │                         │
+│ • 交易關鍵資料       │  │                         │
+└──────────────────────┘  └──────────────────────────┘
+```
 
-付款與交易紀錄
+---
 
-評價／評論
+## 📊 SQL 設計特性（CAMPUS.sql）
 
-訊息（Message）
+| 特性 | 說明 |
+|------|------|
+| ✅ **ACID 交易** | 確保訂單、付款等操作的強一致性 |
+| ✅ **參照完整性** | 外鍵約束防止孤兒資料，確保資料有效性 |
+| ✅ **結構清晰** | 固定欄位與關聯，適合複雜報表與統計 |
+| ✅ **正規化設計** | 第三正規化（3NF）避免資料重複 |
+| ⚠️ **Schema 變動成本高** | 新增欄位需遷移，影響上線時間 |
+| ⚠️ **水平擴充不便** | 多機分散需額外設計（分片、複製等） |
 
-公告（PublicNotice）
+---
 
-這些表之間透過 主鍵 / 外鍵 建立關聯，確保：
+## 📦 NoSQL 資料庫設計（MongoDB）
 
-訂單一定連到有效的使用者與店家
+### 設計理念
 
-付款一定對應到既有訂單
+MongoDB 主要用於儲存**高頻寫入、格式靈活**的資料：
+- 訊息系統：頻繁新增、讀取查詢
+- 公告系統：欄位可能動態增減
 
-訊息與公告可以追溯發送者與接收者
 
-SQL 設計特性
-✅ ACID 交易：適合處理訂單、付款等需要強一致性的操作
+### NoSQL 設計優勢
 
-✅ 結構清楚：固定欄位與關聯，方便做複雜報表與統計
+| 特性 | 說明 |
+|------|------|
+| ✅ **靈活 Schema** | 無需事先定義欄位，可動態新增（讀取狀態、標籤等） |
+| ✅ **寫入效能高** | 適合高頻寫入場景（聊天訊息） |
+| ✅ **水平擴充** | Sharding 分散資料，支援 PB 級規模 |
+| ✅ **嵌套文件** | 相關資料內聚，減少 JOIN 操作 |
+| ⚠️ **沒有交易** | 複雜跨文件操作難以保證一致性 |
+| ⚠️ **維護關聯困難** | 無外鍵約束，需應用層管理 |
 
-✅ 參照完整性：外鍵避免孤兒資料（例如沒有使用者的訂單）
+---
 
-⚠️ Schema 變動成本較高：新增欄位、調整關聯需做遷移
+## 💡 SQL vs NoSQL 使用決策矩陣
 
-⚠️ 水平擴充較不直覺：多機分散需要額外設計
+| 場景 | SQL（CAMPUS.sql） | NoSQL（MongoDB） | 推薦 |
+|------|:---:|:---:|:---:|
+| **訂單、付款、店家等核心業務** | ✅ 強一致性、交易安全、外鍵清晰 | ⚠️ 維護複雜關聯困難 | **SQL** |
+| **定期報表、營收統計、排行榜** | ✅ JOIN + GROUP BY 強大 | ⚠️ 需複雜 Aggregation Pipeline | **SQL** |
+| **高頻率訊息、公告、推送** | ⚠️ 寫入壓力大、Schema 固定 | ✅ 文件簡單、寫入快 | **NoSQL** |
+| **結構常變動的資料** | ⚠️ 每次修改需 Migration | ✅ 直接新增欄位 | **NoSQL** |
+| **資料強關聯與完整性** | ✅ 外鍵約束直接支援 | ⚠️ 應用層自己控管 | **SQL** |
+| **即時推播** | ⚠️ 整列讀取成本高 | ✅ 文件導向，直接推送 | **NoSQL** |
 
-📦 NoSQL 資料庫（MongoDB）
-在本專案中，MongoDB 主要用來處理訊息與公告類資料，這類資料寫入頻繁、格式相對簡單，且未來欄位可能會調整或擴充，因此使用文件型結構較有彈性。
+---
 
-Message 集合（mongoDB-Message）
-用來存放即時訊息或互動紀錄，例如系統訊息、訂單相關通知、聊天紀錄等。
+## 🏗️ 系統分層架構
 
-javascript
-// mongoDB-Message
-{
-  id: ObjectId,        // MongoDB 內部主鍵
-  senderId: String,    // 發送者 ID，對應 SQL 中的使用者 / 店家主鍵
-  type: String,        // 訊息類型（例如：system / order / chat）
-  targetRole: String,  // 接收方角色（student / store / admin）
-  message: String,     // 訊息內容文字
-  createdAt: Date      // 建立時間
-}
-設計重點：
+### 後端分層結構
 
-查詢常見條件為 senderId、type、createdAt，適合建立索引
-
-訊息多、變動快，存在 MongoDB 可減輕 SQL 壓力
-
-結構簡單、欄位未來要新增（例如已讀狀態、附件連結）也很方便
-
-PublicNotice 集合（mongoDB-Publicnotice）
-用來存放系統公告、店家公告等，可針對某些角色或特定使用者推送。
-
-javascript
-// mongoDB-Publicnotice
-{
-  id: ObjectId,        // MongoDB 內部主鍵
-  senderId: String,    // 發送者 ID（例如管理員 / 店家）
-  receiverId: String,  // 接收者 ID（單一使用者、店家或群組 ID）
-  senderRole: String,  // 發送者角色（admin / store / system）
-  message: String,     // 公告內容
-  createdAt: Date      // 建立時間
-}
-設計重點：
-
-將 senderRole、receiverId 與內容放在同一文件
-
-可依 receiverId 或 senderRole 快速撈出對應公告
-
-未來若要支援多接收者、群組、標籤等，也可透過新增欄位完成
-
-💡 SQL 與 NoSQL 的使用場景對比
-需求 / 場景	SQL（CAMPUS.sql）較適合	NoSQL（MongoDB）較適合
-訂單、付款、店家、菜單等核心業務資料	✅ 強一致性、交易安全、關聯清楚	⚠️ 也可，但維護複雜關聯會變麻煩
-定期報表、營收統計、排行查詢	✅ JOIN + Aggregation 很好用	⚠️ 需要額外 Aggregation Pipeline 設計
-高頻率訊息、公告、通知	⚠️ 表結構固定、寫入頻繁會壓力較大	✅ 文件簡單、寫入快、易於水平擴充
-結構常變動的資料（例如訊息附加欄位）	⚠️ 每次都要改 Schema、Migration	✅ 直接新增欄位即可
-要強制保證 FK 關聯的資料	✅ 外鍵與約束直接支援	⚠️ 需在應用程式層自己控管
-🏗️ 系統分層概念
-後端 API（backend/）
-後端以 Express 提供 REST API，底層同時對接：
-
-SQL（CAMPUS.sql）：處理使用者、店家、訂單、付款等核心業務
-
-MongoDB（Message / PublicNotice）：處理訊息與公告
-
-大致結構可以想像成：
-
-text
-Express Server
-    ↓
-├── SQL 模組（MySQL / 其他 RDB）
-│   ├── 使用者 / 店家 / 訂單 / 付款
-│   └── 報表與查詢
+```
+Express Server (Port 3000)
 │
-└── NoSQL 模組（MongoDB）
-    ├── Message（訊息）
-    └── PublicNotice（公告）
-前端（frontend/）
-主要支援以下操作（依實作調整）：
+├─ API Routes 層
+│  ├── /api/orders          → 訂單相關
+│  ├── /api/payments        → 付款相關
+│  ├── /api/messages        → 訊息相關（MongoDB）
+│  ├── /api/notices         → 公告相關（MongoDB）
+│  └── /api/users           → 使用者相關
+│
+├─ Controller 層（業務邏輯）
+│  ├── OrderController
+│  ├── PaymentController
+│  ├── MessageController
+│  └── NoticeController
+│
+├─ Service 層（資料訪問邏輯）
+│  ├── SQLService
+│  │  ├── UserService
+│  │  ├── OrderService
+│  │  ├── PaymentService
+│  │  └── ReviewService
+│  │
+│  └── NoSQLService
+│     ├── MessageService
+│     └── NoticeService
+│
+└─ Database 層
+   ├── MySQL Connection Pool
+   └── MongoDB Connection
+```
 
-學生登入、瀏覽店家與菜單、建立／查詢訂單
+### 資料流向示例
 
-店家管理菜單、查看訂單狀態
+**場景：學生提交訂單並支付**
 
-檢視公告、接收系統或店家訊息
+```
+1. 前端提交訂單表單
+   ↓
+2. Express 接收 POST /api/orders
+   ↓
+3. OrderController 驗證資料
+   ↓
+4. OrderService（SQL）
+   - 檢查菜單與庫存
+   - 插入 Order、OrderItem 記錄
+   - 檢查付款
+   ↓
+5. PaymentService（SQL）
+   - 調用第三方支付 API
+   - 插入 Payment 記錄
+   ↓
+6. NotificationService（MongoDB）
+   - 插入 Message 文件（"訂單已確認"）
+   - 推送通知到前端
+   ↓
+7. 返回 200 OK 給前端
+```
 
-🛠️ 使用技術
-後端：Node.js、Express.js
+---
 
-SQL 資料庫：MySQL（Schema 於 CAMPUS.sql）
+## 🛠️ 使用技術棧
 
-NoSQL 資料庫：MongoDB（Message、PublicNotice 集合）
+### 後端
 
-前端：HTML / CSS / JavaScript（或實際使用之框架）
+| 技術 | 用途 |
+|------|------|
+| **Node.js** | JavaScript 運行環境 |
+| **Express.js** | Web 框架 |
+| **MySQL** | 關聯式資料庫（核心業務資料） |
+| **MongoDB** | 文件資料庫（訊息、公告） |
+| **Mongoose** | MongoDB 連接與 Schema 驗證 |
 
-套件管理：npm / pnpm
+### 前端
 
-🚀 學習重點整理
-從 SQL（CAMPUS.sql）學到的重點
-如何用多張表（Users、Orders、Stores、Payments…）設計完整關聯
+| 技術 | 用途 |
+|------|------|
+| **HTML5 / CSS3** | 頁面結構與樣式 |
+| **JavaScript / ES6+** | 互動邏輯 |
+| **Fetch API** | HTTP 請求 |
 
-如何透過主鍵／外鍵維持資料一致性
+### 開發工具
 
-如何利用 JOIN 與聚合做出營收、訂單量等報表
+| 工具 | 用途 |
+|------|------|
+| **npm / pnpm** | 套件管理 |
+| **nodemon** | 自動重啟開發伺服器 |
+| **Postman** | API 測試 |
+| **MySQL Workbench** | SQL 資料庫管理 |
+| **MongoDB Compass** | MongoDB 視覺化工具 |
+| **Git** | 版本控制 |
 
-從 NoSQL（MongoDB）學到的重點
-如何為「訊息、公告」這種高頻、結構彈性的資料設計文件 Schema
+---
 
-如何在不破壞現有資料的前提下，平滑新增欄位（例如讀取狀態、標籤）
+## 📚 資料庫初始化
 
-如何運用索引與查詢條件，快速查詢某個使用者／角色相關訊息與公告
+```bash
+# 創建 MySQL 資料庫
+mysql -u root -p < database/CAMPUS.sql
 
-📝 開發建議
-SQL 端（CAMPUS.sql）
-避免在高頻寫入場景（例如聊天訊息）過度依賴 SQL，將壓力交給 MongoDB
+# 創建 MongoDB 集合
+mongo < nosql/init-mongodb.js
 
-堅持使用 Prepared Statement，避免 SQL Injection
+# 配置環境變數
+cp backend/.env.example backend/.env
+```
 
-對常用查詢欄位（如 user_id、store_id、order_time）建立索引
+---
 
-NoSQL 端（MongoDB）
-對 senderId、receiverId、createdAt 建立索引，優化查詢效能
+## 🚀 核心重點
 
-未來如果需要支援多接收者，可以把 receiverId 改成陣列 receiverIds
+### SQL 端（CAMPUS.sql）
 
-透過應用程式層（而不是 DB 約束）來保證 senderId / receiverId 存在於 SQL 中
+- 🔑 **主鍵 / 外鍵設計**：如何建立多表關聯
+- 📊 **正規化分析**：確保資料無重複、一致
+- 🔄 **複雜查詢**：JOIN、GROUP BY、子查詢
+- 📈 **索引最佳化**：查詢效能調優
+- 🔐 **ACID 交易**：Prepared Statement、隔離級別
 
-👥 團隊說明
-本專案為課程專題／學習型專案，目標是讓組員實際體驗：
+### NoSQL 端（MongoDB）
 
-同一個業務需求，在 SQL 與 NoSQL 上要怎麼設計與取捨
+- 📄 **文件 Schema 設計**：欄位結構規劃
+- 🔍 **索引策略**：符合查詢模式的索引
+- 🔄 **動態欄位擴充**：無遷移成本新增欄位
+- 🎯 **應用層一致性**：自己管理外鍵關聯
+- ⚡ **高效查詢**：Aggregation Pipeline 資料聚合
 
-何時該把資料放在關聯式資料庫，何時適合放在文件資料庫
+---
 
-如何在後端同時對接兩種資料庫，並讓前端透過統一 API 使用
+## 👥 團隊與專案信息
 
+### 專案屬性
+
+- **專案類型**：課程專題 / 學習型專案
+- **組別**：第七組 DBMS 生存進化
+- **課程**：資料庫管理系統（DBMS）
+
+### 核心目標
+
+本專案旨在讓開發團隊親身體驗：
+
+1. **同一業務需求的多種設計方案**
+   - 如何在 SQL 中設計？
+   - 如何在 NoSQL 中設計？
+   - 兩者的優缺點對比
+
+2. **資料庫選型決策**
+   - 什麼資料適合放在關聯式資料庫？
+   - 什麼資料適合放在文件資料庫？
+   - 如何在兩者間取得平衡？
+
+---
+
+**最後更新**：2025 年 12 月 7 日  
