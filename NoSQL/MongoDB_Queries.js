@@ -14,7 +14,12 @@ db.messages.find({
 }).sort({ createdAt: -1 });
 
 // ==================== 查找特定時間範圍的公告 ====================
-db.publicnotices.find().sort({ createdAt: -1 });
+db.publicnotices.find({
+  createdAt: {
+    $gte: ISODate("2025-12-06T00:00:00.000Z"), 
+    $lt: ISODate("2025-12-07T00:00:00.000Z")
+  }
+});
 
 
 // ==================== 查找特定店鋪的公告 ====================
