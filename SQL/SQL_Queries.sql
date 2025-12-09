@@ -36,19 +36,17 @@ SELECT
     ItemName,
     Description,
     Price,
-    Category,
     IsAvailable
 FROM MenuItem
 WHERE StoreID = 1 AND IsAvailable = 1
-ORDER BY Category, Price DESC;
+ORDER BY Price DESC;
 
 -- 1.4 查詢按價格排序的菜單
 SELECT 
     m.MenuItemID,
     m.ItemName,
     s.StoreName,
-    m.Price,
-    m.Category
+    m.Price
 FROM MenuItem m
 JOIN Store s ON m.StoreID = s.StoreID
 WHERE m.IsAvailable = 1
@@ -63,10 +61,9 @@ SELECT
     OrderID,
     OrderStatus,
     TotalAmount,
-    CreatedAt,
-    DeliveryAddress
+    CreatedAt
 FROM Orders
-WHERE UserID = 4
+WHERE UserID = 12
 ORDER BY CreatedAt DESC;
 
 -- 2.2 查詢待確認的訂單
@@ -83,13 +80,12 @@ JOIN Store s ON o.StoreID = s.StoreID
 WHERE o.OrderStatus = 'Pending'
 ORDER BY o.CreatedAt ASC;
 
--- 2.3 查詢 50 元以下的便宜菜單
+-- 2.3 查詢 50 元以下的菜單
 SELECT 
     m.MenuItemID,
     m.ItemName,
     s.StoreName,
-    m.Price,
-    m.Category
+    m.Price
 FROM MenuItem m
 JOIN Store s ON m.StoreID = s.StoreID
 WHERE m.Price <= 50 AND m.IsAvailable = 1
@@ -104,7 +100,7 @@ SELECT
     OrderStatus,
     CreatedAt
 FROM Orders
-WHERE CreatedAt BETWEEN '2025-11-01' AND '2025-11-30'
+WHERE CreatedAt BETWEEN '2025-11-01' AND '2025-12-30'
 ORDER BY CreatedAt DESC;
 
 -- 2.5 查詢特定狀態的訂單
@@ -115,7 +111,7 @@ SELECT
     OrderStatus,
     CreatedAt
 FROM Orders
-WHERE OrderStatus IN ('Confirmed', 'Preparing', 'Ready')
+WHERE OrderStatus IN ('Confirmed', 'Pending')
 ORDER BY CreatedAt ASC;
 
 
@@ -238,38 +234,6 @@ WHERE u.Role = 'EndUser'
 GROUP BY u.UserID
 ORDER BY TotalSpent DESC;
 
--- 4.4 按菜單類別統計銷售
-SELECT 
-    Category,
-    COUNT(MenuItemID) AS ItemCount,
-    AVG(Price) AS AvgPrice,
-    MIN(Price) AS MinPrice,
-    MAX(Price) AS MaxPrice
-FROM MenuItem
-WHERE IsAvailable = 1
-GROUP BY Category
-ORDER BY ItemCount DESC;
-
--- 4.5 統計各訂單狀態數量
-SELECT 
-    OrderStatus,
-    COUNT(OrderID) AS Count,
-    AVG(TotalAmount) AS AvgAmount,
-    SUM(TotalAmount) AS TotalAmount
-FROM Orders
-GROUP BY OrderStatus
-ORDER BY Count DESC;
-
--- 4.6 按支付方式統計訂單
-SELECT 
-    PaymentMethod,
-    PaymentStatus,
-    COUNT(PaymentID) AS Count,
-    SUM(Amount) AS TotalAmount
-FROM Payment
-GROUP BY PaymentMethod, PaymentStatus
-ORDER BY Count DESC;
-
 
 -- ==================== 第 5 部分：ORDER BY 排序 ====================
 
@@ -323,44 +287,6 @@ INSERT INTO User
 VALUES 
 ('新用戶名', 'newuser@yuntech.edu.tw', '0987654321', 'hashedPassword123', 'EndUser', 1, NOW(), NOW());
 
--- 6.2 插入或更新商店
-INSERT INTO Store 
-    (StoreName, Description, PhoneNumber, Address, ManagerID, IsOpen, CreatedAt, UpdatedAt)
-VALUES 
-    ('新商店名稱', '美味餐廳描述', '05-1234567', '雲林縣斗六市...', 2, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE
-    Description = VALUES(Description),
-    PhoneNumber = VALUES(PhoneNumber),
-    Address     = VALUES(Address),
-    ManagerID   = VALUES(ManagerID),
-    IsOpen      = VALUES(IsOpen),
-    UpdatedAt   = NOW();
-
-
--- 6.3 插入或更新菜單項目
-INSERT INTO MenuItem 
-    (StoreID, ItemName, Description, Price, Category, IsAvailable, CreatedAt, UpdatedAt)
-VALUES 
-    (1, '新菜色', '新菜色描述', 65.00, '主食', 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE
-    Description = VALUES(Description),
-    Price       = VALUES(Price),
-    Category    = VALUES(Category),
-    IsAvailable = VALUES(IsAvailable),
-    UpdatedAt   = NOW();
-
-
--- 6.4 批量插入評論
-INSERT INTO Review 
-    (UserID, OrderID, Rating, Comment, CreatedAt, UpdatedAt)
-VALUES 
-    (4, 1, 5, '非常好吃！', NOW(), NOW()),
-    (5, 2, 4, '不錯，下次還要點', NOW(), NOW()),
-    (6, 3, 5, '推薦！', NOW(), NOW())
-ON DUPLICATE KEY UPDATE
-    Rating    = VALUES(Rating),
-    Comment   = VALUES(Comment),
-    UpdatedAt = NOW();
 
 -- ==================== 第 7 部分：UPDATE 更新數據 ====================
 
